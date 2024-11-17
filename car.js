@@ -4,9 +4,18 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const bodyParser = require("body-parser");
+const carRoutes = require("./carModel/carRoutes");
 
 const app = express();
 app.use(bodyParser.json());
+
+// Routes
+app.use("/api", carRoutes);
+
+// Error Handling Middleware
+app.use((err, req, res, next) => {
+  res.status(err.status || 500).json({ message: err.message });
+});
 
 // Environment variables
 const PORT = process.env.PORT || 3000;
