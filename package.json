@@ -11,9 +11,10 @@
   "version": "1.0.0",
   "description": "Build a Car Management Application",
   "main": "car.js",
-  "devDependencies": {},
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "nodemon car.js",
+    "start:prod": "NODE_ENV=production nodemon car.js",
+    "debug": "ndb car.js"
   },
   "author": "Harsh Patel",
   "license": "ISC"
