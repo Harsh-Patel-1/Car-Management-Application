@@ -11,21 +11,25 @@ app.use(bodyParser.json());
 
 // Environment variables
 const PORT = process.env.PORT || 3000;
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/crudapi";
+const MONGO_URI =
+  process.env.MONGO_URI ||
+  "mongodb+srv://harsh:Harshpatel@cluster12.sjinn.mongodb.net/carApplication";
 const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
 
 // MongoDB connection
 mongoose
-  .connect("mongodb://127.0.0.1:27017")
+  .connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log("Connected to MongoDB"))
-  .catch((err) => console.log("Couldn't connect to Mongo", err));
+  .catch((err) => {
+    console.error("MongoDB connection error:", err.message);
+    process.exit(1); // Exit the process if connection fails
+  });
 
 // User schema and model
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
 });
-
 const User = mongoose.model("User", userSchema);
 
 // Middleware for verifying JWT
@@ -45,53 +49,62 @@ const authenticateToken = (req, res, next) => {
 // Routes
 // 1. Register
 app.post("/register", async (req, res) => {
-  const { username, password } = req.body;
+  try {
+    const { username, password } = req.body;
 
-  // Validate input
-  if (!username || !password)
-    return res.status(400).json({ message: "All fields are required" });
+    // Validate input
+    if (!username || !password)
+      return res.status(400).json({ message: "All fields are required" });
 
-  // Check if user already exists
-  const userExists = await User.findOne({ username });
-  if (userExists)
-    return res.status(400).json({ message: "Username already exists" });
+    // Check if user already exists
+    const userExists = await User.findOne({ username });
+    if (userExists)
+      return res.status(400).json({ message: "Username already exists" });
 
-  // Hash the password
-  const hashedPassword = await bcrypt.hash(password, 10);
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-  // Save new user
-  const newUser = new User({ username, password: hashedPassword });
-  await newUser.save();
+    // Save new user
+    const newUser = new User({ username, password: hashedPassword });
+    await newUser.save();
 
-  res.status(201).json({ message: "User registered successfully" });
+    res.status(201).json({ message: "User registered successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Server Error", error: err.message });
+  }
 });
 
 // 2. Login
 app.post("/login", async (req, res) => {
-  const { username, password } = req.body;
+  try {
+    const { username, password } = req.body;
 
-  // Validate input
-  if (!username || !password)
-    return res.status(400).json({ message: "All fields are required" });
+    // Validate input
+    if (!username || !password)
+      return res.status(400).json({ message: "All fields are required" });
 
-  // Find the user
-  const user = await User.findOne({ username });
-  if (!user) return res.status(400).json({ message: "Invalid credentials" });
+    // Find the user
+    const user = await User.findOne({ username });
+    if (!user) return res.status(400).json({ message: "Invalid credentials" });
 
-  // Check password
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
+    // Check password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch)
+      return res.status(400).json({ message: "Invalid credentials" });
 
-  // Generate JWT
-  const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: "1h" });
+    // Generate JWT
+    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: "1h" });
 
-  res.status(200).json({ token });
+    res.status(200).json({ token });
+  } catch (err) {
+    res.status(500).json({ message: "Server Error", error: err.message });
+  }
 });
 
-// Start the server
-app.listen(PORT, () =>
-  console.log(`Server running on http://localhost:${PORT}`)
-);
-
-// Routes
+// Additional Routes
 app.use("/api", carRoutes);
+
+// Start the server
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
